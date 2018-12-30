@@ -1,6 +1,11 @@
 #include <Windows.h>
+#include <d3d11.h>
 
-HWND g_hwnd;
+//Global Variable
+HWND					g_hwnd;
+ID3D11Device			*g_d3dDevice;
+ID3D11DeviceContext		*g_d3dDeviceContext;
+IDXGISwapChain			*g_swapChain;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void Render(void);
@@ -16,7 +21,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	winClass.lpszClassName = L"DirectXStudyWinClass";
 	winClass.lpszMenuName = nullptr;
 	winClass.style = CS_HREDRAW | CS_VREDRAW;
-	
+
 	winClass.hbrBackground = (HBRUSH)(COLOR_BACKGROUND + 1);
 	winClass.hIcon = nullptr;
 	winClass.hIconSm = nullptr;
@@ -35,6 +40,51 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 		return E_FAIL;
 
 	ShowWindow(g_hwnd, cmdShowMode);
+
+	//Direct3D 11
+
+	//Feature Level
+	D3D_FEATURE_LEVEL featureLevel[] = {
+		D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_11_0,
+		D3D_FEATURE_LEVEL::D3D_FEATURE_LEVEL_10_0
+	};
+
+	UINT createDeviceFlag = D3D11_CREATE_DEVICE_FLAG::D3D11_CREATE_DEVICE_DEBUG;
+
+	D3D_FEATURE_LEVEL targetFeatureLevel;
+
+	HRESULT result = D3D11CreateDevice(nullptr, D3D_DRIVER_TYPE::D3D_DRIVER_TYPE_HARDWARE, nullptr, 0, featureLevel, sizeof(featureLevel) / sizeof(D3D_FEATURE_LEVEL), D3D11_SDK_VERSION, &g_d3dDevice, &targetFeatureLevel, &g_d3dDeviceContext);
+	if (FAILED(result))
+		return E_FAIL;
+
+	IDXGIDevice *dxgiDevice = nullptr;
+	IDXGIAdapter *dxgiAdapter = nullptr;
+	IDXGIFactory *dxgiFactory = nullptr;
+	result = g_d3dDevice->QueryInterface(__uuidof(IDXGIDevice), reinterpret_cast<void**>(&dxgiDevice));
+	result = dxgiDevice->GetAdapter(&dxgiAdapter);
+	result = dxgiAdapter->GetParent(__uuidof(IDXGIFactory), reinterpret_cast<void**>(&dxgiFactory));
+
+	dxgiAdapter->Release();
+	dxgiDevice->Release();
+
+	GetClientRect(g_hwnd, &clientRect);
+	//Swap Chain
+	DXGI_SWAP_CHAIN_DESC scDes = {};
+	scDes.BufferCount = 1;
+	scDes.BufferDesc.Width = clientRect.right - clientRect.left;
+	scDes.BufferDesc.Height = clientRect.bottom - clientRect.top;
+	scDes.BufferDesc.Format = DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM;
+	scDes.BufferDesc.RefreshRate.Numerator = 60;
+	scDes.BufferDesc.RefreshRate.Denominator = 1;
+	scDes.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	scDes.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_DISCARD;
+	scDes.OutputWindow = g_hwnd;
+	scDes.SampleDesc.Count = 1;
+	scDes.SampleDesc.Quality = 0;
+	scDes.Windowed = true;
+	
+	result = dxgiFactory->CreateSwapChain(g_d3dDevice, &scDes, &g_swapChain);
+
 	MSG message = {0};
 	//Message Loop
 	while (WM_QUIT != message.message)
