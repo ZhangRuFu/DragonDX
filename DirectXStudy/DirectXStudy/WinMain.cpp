@@ -8,6 +8,7 @@ ID3D11Device			*g_d3dDevice;
 ID3D11DeviceContext		*g_d3dDeviceContext;
 IDXGISwapChain			*g_swapChain;
 ID3D11RenderTargetView	*g_rtView;
+ID3D11DepthStencilView	*g_dsView;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void Render(void);
@@ -70,11 +71,14 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	dxgiDevice->Release();
 
 	GetClientRect(g_hwnd, &clientRect);
+	int clientWidth = clientRect.right - clientRect.left;
+	int clientHeight = clientRect.bottom - clientRect.top;
+
 	//Swap Chain
 	DXGI_SWAP_CHAIN_DESC scDes = {};
 	scDes.BufferCount = 1;
-	scDes.BufferDesc.Width = clientRect.right - clientRect.left;
-	scDes.BufferDesc.Height = clientRect.bottom - clientRect.top;
+	scDes.BufferDesc.Width = clientWidth;
+	scDes.BufferDesc.Height = clientHeight;
 	scDes.BufferDesc.Format = DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM;
 	scDes.BufferDesc.RefreshRate.Numerator = 60;
 	scDes.BufferDesc.RefreshRate.Denominator = 1;
@@ -97,7 +101,26 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	result = g_d3dDevice->CreateRenderTargetView(backBuffer, nullptr, &g_rtView);
 	backBuffer->Release();
 
-	g_d3dDeviceContext->OMSetRenderTargets(1, &g_rtView, nullptr);
+	//Depth Stencil Buffer
+	D3D11_TEXTURE2D_DESC tex2DDes;
+	tex2DDes.Width = clientWidth;
+	tex2DDes.Height = clientHeight;
+	tex2DDes.ArraySize = 1;
+	tex2DDes.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL;
+	tex2DDes.CPUAccessFlags = 0;
+	tex2DDes.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT;
+	tex2DDes.MipLevels = 1;
+	tex2DDes.MiscFlags = 0;
+	tex2DDes.SampleDesc.Count = 1;
+	tex2DDes.SampleDesc.Quality = 0;
+	tex2DDes.Usage = D3D11_USAGE::D3D11_USAGE_DEFAULT;
+
+	ID3D11Texture2D *depthTex = nullptr;
+	result = g_d3dDevice->CreateTexture2D(&tex2DDes, nullptr, &depthTex);
+
+	result = g_d3dDevice->CreateDepthStencilView(depthTex, nullptr, &g_dsView);
+
+	g_d3dDeviceContext->OMSetRenderTargets(1, &g_rtView, g_dsView);
 
 	//View Port
 	D3D11_VIEWPORT viewport;
@@ -105,8 +128,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	viewport.TopLeftY = 0;
 	viewport.MinDepth = 0;
 	viewport.MaxDepth = 1;
-	viewport.Width = clientRect.right - clientRect.left;
-	viewport.Height = clientRect.bottom - clientRect.top;
+	viewport.Width = clientWidth;
+	viewport.Height = clientHeight;
 	g_d3dDeviceContext->RSSetViewports(1, &viewport);
 
 	MSG message = {0};
