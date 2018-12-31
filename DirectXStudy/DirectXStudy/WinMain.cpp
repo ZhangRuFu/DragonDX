@@ -99,6 +99,16 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 
 	g_d3dDeviceContext->OMSetRenderTargets(1, &g_rtView, nullptr);
 
+	//View Port
+	D3D11_VIEWPORT viewport;
+	viewport.TopLeftX = 0;
+	viewport.TopLeftY = 0;
+	viewport.MinDepth = 0;
+	viewport.MaxDepth = 1;
+	viewport.Width = clientRect.right - clientRect.left;
+	viewport.Height = clientRect.bottom - clientRect.top;
+	g_d3dDeviceContext->RSSetViewports(1, &viewport);
+
 	MSG message = {0};
 	//Message Loop
 	while (WM_QUIT != message.message)
