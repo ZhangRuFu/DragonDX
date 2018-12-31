@@ -1,11 +1,13 @@
 #include <Windows.h>
 #include <d3d11.h>
+#include <DirectXColors.h>
 
 //Global Variable
 HWND					g_hwnd;
 ID3D11Device			*g_d3dDevice;
 ID3D11DeviceContext		*g_d3dDeviceContext;
 IDXGISwapChain			*g_swapChain;
+ID3D11RenderTargetView	*g_rtView;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void Render(void);
@@ -84,6 +86,18 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	scDes.Windowed = true;
 	
 	result = dxgiFactory->CreateSwapChain(g_d3dDevice, &scDes, &g_swapChain);
+	dxgiFactory->MakeWindowAssociation(g_hwnd, DXGI_MWA_NO_ALT_ENTER);
+
+	dxgiFactory->Release();
+
+	//Back Buffer as Render Target
+	ID3D11Texture2D *backBuffer = nullptr;
+	result = g_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
+
+	result = g_d3dDevice->CreateRenderTargetView(backBuffer, nullptr, &g_rtView);
+	backBuffer->Release();
+
+	g_d3dDeviceContext->OMSetRenderTargets(1, &g_rtView, nullptr);
 
 	MSG message = {0};
 	//Message Loop
@@ -97,6 +111,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 		else
 			Render();
 	}
+
+	g_d3dDevice->Release();
+	g_d3dDeviceContext->Release();
+	g_swapChain->Release();
+	g_rtView->Release();
 
 	return (int)message.wParam;
 }
@@ -117,5 +136,6 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
 void Render()
 {
-
+	g_d3dDeviceContext->ClearRenderTargetView(g_rtView, DirectX::Colors::LightBlue);
+	g_swapChain->Present(0, 0);
 }
