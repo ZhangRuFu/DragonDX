@@ -2,6 +2,8 @@
 #include <d3d11.h>
 #include <DirectXColors.h>
 
+#include "Screen.h"
+
 //Global Variable
 HWND					g_hwnd;
 ID3D11Device			*g_d3dDevice;
@@ -13,8 +15,13 @@ ID3D11DepthStencilView	*g_dsView;
 LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 void Render(void);
 
+void InitEngine(void);
+void InitWindow(void);
+
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLine, int cmdShowMode)
 {
+	InitEngine();
+
 	//WindowClass
 	WNDCLASSEX winClass;
 	winClass.cbSize = sizeof(WNDCLASSEX);
@@ -35,7 +42,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	if (!RegisterClassEx(&winClass))
 		return E_FAIL;
 	//Window
-	RECT clientRect = { 0, 0, 800, 600 };
+
+	RECT clientRect = { 0, 0, Screen::GetScreenWidth(), Screen::GetScreenHeight() };
 	AdjustWindowRect(&clientRect, WS_OVERLAPPEDWINDOW, FALSE);
 	g_hwnd = CreateWindow(L"DirectXStudyWinClass", L"DirectStudy", WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, clientRect.right - clientRect.left, clientRect.bottom - clientRect.top, nullptr, nullptr, hInstance, nullptr);
 
@@ -70,41 +78,39 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	dxgiAdapter->Release();
 	dxgiDevice->Release();
 
-	GetClientRect(g_hwnd, &clientRect);
-	int clientWidth = clientRect.right - clientRect.left;
-	int clientHeight = clientRect.bottom - clientRect.top;
-
 	//Swap Chain
-	DXGI_SWAP_CHAIN_DESC scDes = {};
-	scDes.BufferCount = 1;
-	scDes.BufferDesc.Width = clientWidth;
-	scDes.BufferDesc.Height = clientHeight;
-	scDes.BufferDesc.Format = DXGI_FORMAT::DXGI_FORMAT_B8G8R8A8_UNORM;
-	scDes.BufferDesc.RefreshRate.Numerator = 60;
-	scDes.BufferDesc.RefreshRate.Denominator = 1;
-	scDes.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-	scDes.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_DISCARD;
-	scDes.OutputWindow = g_hwnd;
-	scDes.SampleDesc.Count = 1;
-	scDes.SampleDesc.Quality = 0;
-	scDes.Windowed = true;
-	
-	result = dxgiFactory->CreateSwapChain(g_d3dDevice, &scDes, &g_swapChain);
-	dxgiFactory->MakeWindowAssociation(g_hwnd, DXGI_MWA_NO_ALT_ENTER);
+	DXGI_SWAP_CHAIN_DESC swapChainDesc = {};
+	swapChainDesc.BufferCount = 1;
+	swapChainDesc.BufferDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	swapChainDesc.BufferDesc.Width = Screen::GetScreenWidth();
+	swapChainDesc.BufferDesc.Height = Screen::GetScreenHeight();
+	swapChainDesc.BufferDesc.RefreshRate.Numerator = 60;
+	swapChainDesc.BufferDesc.RefreshRate.Denominator = 1;
+	swapChainDesc.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+	swapChainDesc.OutputWindow = g_hwnd;
+	swapChainDesc.SampleDesc.Count = 1;
+	swapChainDesc.SampleDesc.Quality = 0;
+	swapChainDesc.SwapEffect = DXGI_SWAP_EFFECT::DXGI_SWAP_EFFECT_DISCARD;
+	swapChainDesc.Windowed = true;
 
+	dxgiFactory->CreateSwapChain(g_d3dDevice, &swapChainDesc, &g_swapChain);
+	dxgiFactory->MakeWindowAssociation(g_hwnd, DXGI_MWA_NO_ALT_ENTER);
 	dxgiFactory->Release();
 
 	//Back Buffer as Render Target
 	ID3D11Texture2D *backBuffer = nullptr;
 	result = g_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&backBuffer));
 
-	result = g_d3dDevice->CreateRenderTargetView(backBuffer, nullptr, &g_rtView);
+	D3D11_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+	rtvDesc.Format = DXGI_FORMAT::DXGI_FORMAT_R8G8B8A8_UNORM;
+	rtvDesc.ViewDimension = D3D11_RTV_DIMENSION::D3D11_RTV_DIMENSION_TEXTURE2D;
+	g_d3dDevice->CreateRenderTargetView(backBuffer, &rtvDesc, &g_rtView);
 	backBuffer->Release();
 
 	//Depth Stencil Buffer
 	D3D11_TEXTURE2D_DESC tex2DDes;
-	tex2DDes.Width = clientWidth;
-	tex2DDes.Height = clientHeight;
+	tex2DDes.Width = Screen::GetScreenWidth();
+	tex2DDes.Height = Screen::GetScreenHeight();
 	tex2DDes.ArraySize = 1;
 	tex2DDes.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_DEPTH_STENCIL;
 	tex2DDes.CPUAccessFlags = 0;
@@ -118,7 +124,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	ID3D11Texture2D *depthTex = nullptr;
 	result = g_d3dDevice->CreateTexture2D(&tex2DDes, nullptr, &depthTex);
 
-	result = g_d3dDevice->CreateDepthStencilView(depthTex, nullptr, &g_dsView);
+	D3D11_DEPTH_STENCIL_VIEW_DESC depthStencilViewDesc = {};
+	depthStencilViewDesc.Format = DXGI_FORMAT::DXGI_FORMAT_D32_FLOAT;
+	depthStencilViewDesc.ViewDimension = D3D11_DSV_DIMENSION::D3D11_DSV_DIMENSION_TEXTURE2D;
+	depthStencilViewDesc.Texture2D.MipSlice = 0;
+	result = g_d3dDevice->CreateDepthStencilView(depthTex, &depthStencilViewDesc, &g_dsView);
 
 	g_d3dDeviceContext->OMSetRenderTargets(1, &g_rtView, g_dsView);
 
@@ -128,8 +138,8 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	viewport.TopLeftY = 0;
 	viewport.MinDepth = 0;
 	viewport.MaxDepth = 1;
-	viewport.Width = clientWidth;
-	viewport.Height = clientHeight;
+	viewport.Width = Screen::GetScreenWidth();
+	viewport.Height = Screen::GetScreenHeight();
 	g_d3dDeviceContext->RSSetViewports(1, &viewport);
 
 	MSG message = {0};
@@ -148,7 +158,9 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	g_d3dDevice->Release();
 	g_d3dDeviceContext->Release();
 	g_swapChain->Release();
+
 	g_rtView->Release();
+	g_dsView->Release();
 
 	return (int)message.wParam;
 }
@@ -165,6 +177,11 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 
 	return 0;
+}
+
+void InitEngine(void)
+{
+	Screen::Init(800, 600);
 }
 
 void Render()
