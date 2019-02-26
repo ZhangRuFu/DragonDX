@@ -1,5 +1,7 @@
 #include <Windows.h>
 #include <d3d11.h>
+#include <d3dcompiler.h>
+#include <DirectXMath.h>
 #include <DirectXColors.h>
 
 #include "Screen.h"
@@ -17,6 +19,12 @@ void Render(void);
 
 void InitEngine(void);
 void InitWindow(void);
+
+struct BasicVertex
+{
+	DirectX::XMFLOAT3 m_postion;
+	DirectX::XMFLOAT3 m_color;
+};
 
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLine, int cmdShowMode)
 {
@@ -142,6 +150,86 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	viewport.Height = Screen::GetScreenHeight();
 	g_d3dDeviceContext->RSSetViewports(1, &viewport);
 
+	//Basic Mesh
+	BasicVertex triangleMesh[] = {
+		{ DirectX::XMFLOAT3(0, 0.5, 0.5), DirectX::XMFLOAT3(1, 0, 0) },
+		{ DirectX::XMFLOAT3(0.5, 0, 0.5), DirectX::XMFLOAT3(0, 1, 0) },
+		{ DirectX::XMFLOAT3(-0.5, 0, 0.5), DirectX::XMFLOAT3(0, 0, 1) }
+	};
+
+	D3D11_BUFFER_DESC bufferDesc;
+	bufferDesc.BindFlags = D3D11_BIND_FLAG::D3D11_BIND_VERTEX_BUFFER;
+	bufferDesc.CPUAccessFlags = 0;
+	bufferDesc.Usage = D3D11_USAGE::D3D11_USAGE_IMMUTABLE;
+	bufferDesc.MiscFlags = 0;
+	bufferDesc.StructureByteStride = 0;
+	bufferDesc.ByteWidth = sizeof(BasicVertex) * 3;
+
+	D3D11_SUBRESOURCE_DATA bufferData = {};
+	bufferData.pSysMem = &triangleMesh;
+
+	ID3D11Buffer *vertexBuffer;
+	g_d3dDevice->CreateBuffer(&bufferDesc, &bufferData, &vertexBuffer);
+
+	D3D11_INPUT_ELEMENT_DESC inputDesc[] = {
+		{"POSITION", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0},
+		{ "COLOR", 0, DXGI_FORMAT::DXGI_FORMAT_R32G32B32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_CLASSIFICATION::D3D11_INPUT_PER_VERTEX_DATA, 0 }
+	};
+
+	//Shader
+	ID3DBlob *vertexShaderByteCode = nullptr;
+	ID3DBlob *fragmentShaderByteCode = nullptr;
+	ID3DBlob *errorMsg = nullptr;
+
+	//[QUESTION]必须是hlsl后缀？
+	//[QUESTION]尝试头文件包含?
+	//[QUESTION]不能是VertexShader
+	result = D3DCompileFromFile(L"vertex.hlsl", nullptr, nullptr, "Vertex", "vs_4_0", 0, 0, &vertexShaderByteCode, &errorMsg);
+	if (FAILED(result))
+	{
+		if (errorMsg)
+		{
+			const char* err = (reinterpret_cast<const char*>(errorMsg->GetBufferPointer()));
+			errorMsg->Release();
+		}
+
+		MessageBox(nullptr, L"Error", L"Error", MB_OK);
+		return E_FAIL;
+	}
+
+	result = D3DCompileFromFile(L"fragment.hlsl", nullptr, nullptr, "FragmentShader", "ps_4_0", 0, 0, &fragmentShaderByteCode, &errorMsg);
+	if (FAILED(result))
+	{
+		if (errorMsg)
+		{
+			const char* err = (reinterpret_cast<const char*>(errorMsg->GetBufferPointer()));
+			errorMsg->Release();
+		}
+		return E_FAIL;
+	}
+
+	ID3D11VertexShader *vertexShader = nullptr;
+	ID3D11PixelShader *fragmentShader = nullptr;
+	result = g_d3dDevice->CreateVertexShader(vertexShaderByteCode->GetBufferPointer(), vertexShaderByteCode->GetBufferSize(), nullptr, &vertexShader);
+	result = g_d3dDevice->CreatePixelShader(fragmentShaderByteCode->GetBufferPointer(), fragmentShaderByteCode->GetBufferSize(), nullptr, &fragmentShader);
+
+	g_d3dDeviceContext->VSSetShader(vertexShader, nullptr, 0);
+	g_d3dDeviceContext->PSSetShader(fragmentShader, nullptr, 0);
+
+	//Input Layout
+	//[QUESTION] 尝试shader里面位置是float4
+	//[QUESTION] 尝试不匹配
+	ID3D11InputLayout *inputLayout = nullptr;
+	result = g_d3dDevice->CreateInputLayout(inputDesc, ARRAYSIZE(inputDesc), vertexShaderByteCode->GetBufferPointer(), vertexShaderByteCode->GetBufferSize(), &inputLayout);
+
+	g_d3dDeviceContext->IASetInputLayout(inputLayout);
+
+	unsigned int stride = sizeof(BasicVertex);
+	unsigned offset = 0;
+	g_d3dDeviceContext->IASetVertexBuffers(0, 0, &vertexBuffer, &stride, &offset);
+	g_d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+
 	MSG message = {0};
 	//Message Loop
 	while (WM_QUIT != message.message)
@@ -187,5 +275,6 @@ void InitEngine(void)
 void Render()
 {
 	g_d3dDeviceContext->ClearRenderTargetView(g_rtView, DirectX::Colors::LightBlue);
+	g_d3dDeviceContext->Draw(3, 0);
 	g_swapChain->Present(0, 0);
 }
