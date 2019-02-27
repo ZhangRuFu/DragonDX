@@ -138,7 +138,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	depthStencilViewDesc.Texture2D.MipSlice = 0;
 	result = g_d3dDevice->CreateDepthStencilView(depthTex, &depthStencilViewDesc, &g_dsView);
 
-	g_d3dDeviceContext->OMSetRenderTargets(1, &g_rtView, g_dsView);
+	g_d3dDeviceContext->OMSetRenderTargets(1, &g_rtView, nullptr);
 
 	//View Port
 	D3D11_VIEWPORT viewport;
@@ -151,10 +151,11 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 	g_d3dDeviceContext->RSSetViewports(1, &viewport);
 
 	//Basic Mesh
+	//[QUESTION]Éî¶È???
 	BasicVertex triangleMesh[] = {
-		{ DirectX::XMFLOAT3(0, 0.5, 0.5), DirectX::XMFLOAT3(1, 0, 0) },
-		{ DirectX::XMFLOAT3(0.5, 0, 0.5), DirectX::XMFLOAT3(0, 1, 0) },
-		{ DirectX::XMFLOAT3(-0.5, 0, 0.5), DirectX::XMFLOAT3(0, 0, 1) }
+		{ DirectX::XMFLOAT3(0, 0.5, 0), DirectX::XMFLOAT3(1, 0, 0) },
+		{ DirectX::XMFLOAT3(0.5, -0.5, 0), DirectX::XMFLOAT3(0, 1, 0) },
+		{ DirectX::XMFLOAT3(-0.5, -0.5, 0), DirectX::XMFLOAT3(0, 0, 1) }
 	};
 
 	D3D11_BUFFER_DESC bufferDesc;
@@ -226,7 +227,7 @@ int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR lpCmdLin
 
 	unsigned int stride = sizeof(BasicVertex);
 	unsigned offset = 0;
-	g_d3dDeviceContext->IASetVertexBuffers(0, 0, &vertexBuffer, &stride, &offset);
+	g_d3dDeviceContext->IASetVertexBuffers(0, 1, &vertexBuffer, &stride, &offset);
 	g_d3dDeviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY::D3D10_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
 
 
