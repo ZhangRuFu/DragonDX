@@ -23,9 +23,3 @@ public:
 	static void DestroyDevice();
 	
 };
-
-struct BasicVertex
-{
-	DirectX::XMFLOAT3 m_postion;
-	DirectX::XMFLOAT3 m_color;
-};
