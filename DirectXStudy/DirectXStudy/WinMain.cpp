@@ -8,26 +8,6 @@ HWND g_hwnd;
 
 LRESULT CALLBACK WndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
 
-void DisposeConsole(void)
-{
-	int result = AllocConsole();
-	if (!result)
-		return;
-
-	HANDLE stdInput = GetStdHandle(STD_INPUT_HANDLE);
-	HANDLE stdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-
-	QString buffer = QString();
-	buffer = QString::fromUtf16(u"ÖÐÎÄÊä³ö");
-
-	WriteConsoleW(stdOutput, buffer.toStdWString().c_str(), buffer.size(), nullptr, nullptr);
-	char16_t *inputBuffer = new char16_t[20];
-	DWORD numberRead = 0;
-	ReadConsoleW(stdInput, inputBuffer, 19, &numberRead, nullptr);
-
-	FreeConsole();
-}
-
 int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPreInstance, LPWSTR cmdLine, int nCmdShow)
 {
 	//Window Class
