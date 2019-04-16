@@ -1,13 +1,27 @@
 #include "Console.h"
 
-QString Console::Read()
+String Console::Read()
 {
-	return QString();
+	String str;
+	unsigned long readCount = 0;
+	wchar_t *inputBuffer = m_instance->m_inputBuffer;
+	while (true)
+	{
+		ReadConsoleW(m_instance->m_stdInput, inputBuffer, InputBufferLength, &readCount, nullptr);
+		if (inputBuffer[readCount - 1] == u'\n')
+		{
+			str.append(reinterpret_cast<char16_t*>(inputBuffer), readCount - 2);
+			break;
+		}
+		else
+			str.append(reinterpret_cast<char16_t*>(inputBuffer), readCount);
+	}
+	return str;
 }
 
-void Console::Write(QString str)
+void Console::Write(const String &str)
 {
-
+	WriteConsoleW(m_instance->m_stdOutput, str.data(), str.length(), nullptr, nullptr);
 }
 
 void Console::Init()

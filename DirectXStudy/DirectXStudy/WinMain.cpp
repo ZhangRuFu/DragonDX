@@ -1,8 +1,8 @@
 
 #include <Windows.h>
 #include <string>
-#include <QtCore\qstring.h>
 #include "Screen.h"
+#include "Console.h"
 
 HWND g_hwnd;
 
@@ -55,10 +55,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		return 1;
 		break;
 	case WM_DESTROY:
+		Console::Destroy();
+
 		PostQuitMessage(0);
 		break;
 	case WM_PAINT:
 		ValidateRect(hwnd, nullptr);
+		break;
+	case WM_CREATE:
+		Console::Init();
 		break;
 	default:
 		return DefWindowProc(hwnd, msg, wparam, lparam);

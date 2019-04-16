@@ -1,12 +1,15 @@
 #pragma once
 #include <Windows.h>
-#include <QtCore\qstring.h>
+#include <string>
+#include "Common.h"
 
 class Console
 {
 private:
 	HANDLE m_stdInput;
 	HANDLE m_stdOutput;
+	static const int InputBufferLength = 64;
+	wchar_t m_inputBuffer[InputBufferLength];
 	static Console *m_instance;
 
 private:
@@ -16,6 +19,6 @@ private:
 public:
 	static void Init();
 	static void Destroy();
-	static void Write(QString str);
-	static QString Read();
+	static void Write(const String &str);
+	static String Read();
 };
