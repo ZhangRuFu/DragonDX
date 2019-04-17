@@ -88,13 +88,14 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\Software\Boost\boost_1_69_0;E:\DirectX\DragonDX\DirectXStudy\DirectXStudy\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>d3d11.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\Software\Boost\boost_1_69_0\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -146,14 +147,24 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Console.cpp" />
-    <ClCompile Include="Screen.cpp" />
-    <ClCompile Include="WinMain.cpp" />
+    <ClInclude Include="include\Common.h" />
+    <ClInclude Include="include\Console.h" />
+    <ClInclude Include="include\Format.h" />
+    <ClInclude Include="include\GfxDevice.h" />
+    <ClInclude Include="include\GfxDeviceManager.h" />
+    <ClInclude Include="include\Render.h" />
+    <ClInclude Include="include\Screen.h" />
+    <ClInclude Include="include\State.h" />
+    <ClInclude Include="include\State\State.h" />
+    <ClInclude Include="include\State\StateManager.h" />
+    <ClInclude Include="include\String.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Common.h" />
-    <ClInclude Include="Console.h" />
-    <ClInclude Include="Screen.h" />
+    <ClCompile Include="src\Console.cpp" />
+    <ClCompile Include="src\GfxDeviceManager.cpp" />
+    <ClCompile Include="src\Render.cpp" />
+    <ClCompile Include="src\Screen.cpp" />
+    <ClCompile Include="src\WinMain.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
